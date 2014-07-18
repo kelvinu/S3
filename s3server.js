@@ -41,5 +41,41 @@ Meteor.methods({
 				Meteor.call(callback);
 			}
 		});
-	}
+	},
+    S3uploadBlob:function(file, context,callback){
+      
+      var future = new Future();
+
+      console.log("Blob File: ", file);
+
+      //var extension = (file.name).match(/\.[0-9a-z]{1,5}$/i);
+      var filename = Meteor.uuid()+ "." + context.filetype;
+      var path = ( S3.config.directory === undefined || S3.config.directory === null) ? filename : S3.config.directory+ Meteor.userId() + '/' +filename;
+
+      var buffer = new Buffer(file, 'base64');
+
+      //console.log("path: ", path, buffer, buffer.length);
+
+
+
+
+      knox.putBuffer(buffer,path,{
+      							"Content-Type": "image/jpeg",
+      							"Content-Length":buffer.length
+      						},function(e,r){
+        if(!e){
+          future.return(path);
+        } else {
+          console.log(e);
+        }
+      });
+
+      if(future.wait() && callback){
+        var url = knox.http(future.wait());
+        Meteor.call(callback,url,context);
+        return url;
+      }
+
+
+    }
 });
